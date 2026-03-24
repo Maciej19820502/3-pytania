@@ -33,6 +33,16 @@ export default function ParticipantPage() {
 
   useEffect(scrollToBottom, [chatHistory]);
 
+  // Fetch session language on page load (before joining)
+  useEffect(() => {
+    fetch("/api/session")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.config?.language) setLang(data.config.language);
+      })
+      .catch(() => {});
+  }, []);
+
   const poll = useCallback(async () => {
     if (!joined) return;
     try {
