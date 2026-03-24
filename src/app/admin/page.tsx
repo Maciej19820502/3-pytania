@@ -51,7 +51,7 @@ export default function AdminPage() {
       setParticipantCount(data.participantCount);
       if (data.config?.startedAt) setStartedAt(data.config.startedAt);
       if (data.config?.duration) setConfigDuration(data.config.duration);
-      if (data.config?.language) setLang(data.config.language);
+      if (data.status !== "waiting" && data.config?.language) setLang(data.config.language);
       if (data.summary) setSummary(data.summary);
     } catch (e) {
       console.error("Poll error:", e);
