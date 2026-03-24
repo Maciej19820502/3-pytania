@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { translations, Language } from "@/lib/translations";
 
 interface ChatMessage {
   role: "assistant" | "user";
@@ -21,7 +22,10 @@ export default function ParticipantPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [chatInitialized, setChatInitialized] = useState(false);
   const [timeUp, setTimeUp] = useState(false);
+  const [lang, setLang] = useState<Language>("pl");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const t = translations[lang];
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,6 +43,7 @@ export default function ParticipantPage() {
       setSessionStatus(data.sessionStatus);
       if (data.config?.startedAt) setStartedAt(data.config.startedAt);
       if (data.config?.duration) setConfigDuration(data.config.duration);
+      if (data.config?.language) setLang(data.config.language);
       if (data.summary) setSummary(data.summary);
       if (data.participant?.status === "finished") setFinished(true);
       if (
@@ -59,7 +64,6 @@ export default function ParticipantPage() {
     return () => clearInterval(interval);
   }, [joined, poll]);
 
-  // Timer
   useEffect(() => {
     if (!startedAt || sessionStatus !== "active") {
       setTimeLeft(null);
@@ -77,7 +81,6 @@ export default function ParticipantPage() {
     return () => clearInterval(interval);
   }, [startedAt, configDuration, sessionStatus]);
 
-  // Init chat when session starts
   useEffect(() => {
     if (sessionStatus === "active" && joined && !chatInitialized) {
       setChatInitialized(true);
@@ -156,24 +159,29 @@ export default function ParticipantPage() {
   // NOT JOINED
   if (!joined) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <h2 className="text-xl font-bold">Dolacz do sesji</h2>
-        <input
-          type="text"
-          placeholder="Twoje imie / nick"
-          value={nick}
-          onChange={(e) => setNick(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-          className="w-72 bg-white/10 border border-white/20 rounded-lg p-3 text-white text-center focus:outline-none focus:border-gold"
-          maxLength={30}
-        />
-        <button
-          onClick={handleJoin}
-          disabled={!nick.trim()}
-          className="bg-gold hover:bg-yellow-500 text-navy font-bold px-8 py-3 rounded-lg transition-colors disabled:opacity-50"
-        >
-          Dolacz
-        </button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] fade-in">
+        <div className="card p-10 w-full max-w-sm text-center space-y-6">
+          <div>
+            <h2 className="text-xl font-bold mb-1">{t.joinSession}</h2>
+            <p className="text-white/30 text-sm">{t.enterName}</p>
+          </div>
+          <input
+            type="text"
+            placeholder={t.namePlaceholder}
+            value={nick}
+            onChange={(e) => setNick(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+            className="input-field w-full p-3 text-center text-sm"
+            maxLength={30}
+          />
+          <button
+            onClick={handleJoin}
+            disabled={!nick.trim()}
+            className="btn-primary w-full py-3 text-sm"
+          >
+            {t.join}
+          </button>
+        </div>
       </div>
     );
   }
@@ -181,27 +189,36 @@ export default function ParticipantPage() {
   // WAITING FOR START
   if (sessionStatus === "waiting") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <div className="text-gold text-4xl pulse-glow">&#9679;</div>
-        <h2 className="text-xl font-bold">Czekaj na start sesji</h2>
-        <p className="text-white/50 text-sm">
-          Polaczono jako <span className="text-gold">{nick}</span>
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] fade-in">
+        <div className="card p-10 text-center space-y-5">
+          <div className="w-16 h-16 mx-auto rounded-full bg-[#F0A500]/10 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-[#F0A500] pulse-glow" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold mb-1">{t.waitingForStart}</h2>
+            <p className="text-white/30 text-sm">
+              {t.connectedAs}{" "}
+              <span className="text-[#F0A500] font-medium">{nick}</span>
+            </p>
+          </div>
+          <p className="text-white/20 text-xs">{t.sessionStartedByHost}</p>
+        </div>
       </div>
     );
   }
 
-  // ACTIVE or FINISHED - show chat
   const chatLocked = timeUp || sessionStatus === "finished";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)]">
+    <div className="flex flex-col h-[calc(100vh-220px)] fade-in">
       {/* Timer */}
       {sessionStatus === "active" && timeLeft !== null && (
-        <div className="text-center mb-4">
+        <div className="text-center mb-5">
           <span
-            className={`text-4xl font-bold font-mono ${
-              timeLeft < 60000 ? "text-red-400" : "text-gold"
+            className={`text-4xl font-bold font-mono tabular-nums ${
+              timeLeft < 60000
+                ? "text-red-400 timer-danger"
+                : "text-[#F0A500] timer-glow"
             }`}
           >
             {formatTime(timeLeft)}
@@ -211,9 +228,9 @@ export default function ParticipantPage() {
 
       {/* Summary */}
       {summary && (
-        <div className="bg-white/5 rounded-lg p-6 mb-4">
-          <h2 className="text-gold font-bold text-lg mb-3">Wyniki grupy</h2>
-          <div className="text-white/90 whitespace-pre-wrap leading-relaxed text-sm">
+        <div className="card p-6 mb-4 fade-in">
+          <p className="section-title mb-4">{t.groupResults}</p>
+          <div className="text-white/80 whitespace-pre-wrap leading-relaxed text-sm">
             {summary}
           </div>
         </div>
@@ -221,32 +238,34 @@ export default function ParticipantPage() {
 
       {/* Status messages */}
       {finished && !summary && (
-        <div className="bg-green-900/30 border border-green-500/30 rounded-lg p-4 mb-4 text-center">
-          <span className="text-green-400">&#10004;</span> Gotowe! Czekaj na
-          wyniki grupy.
+        <div className="card p-5 mb-4 text-center fade-in">
+          <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-green-500/10 flex items-center justify-center">
+            <span className="text-green-400 text-lg">&#10003;</span>
+          </div>
+          <p className="text-white/80 text-sm font-medium">{t.doneWaiting}</p>
         </div>
       )}
 
       {chatLocked && !finished && (
-        <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 mb-4 text-center">
-          Czas minal. Czekaj na wyniki grupy.
+        <div className="card p-5 mb-4 text-center fade-in">
+          <p className="text-red-400/80 text-sm font-medium">
+            {t.timeUpWaiting}
+          </p>
         </div>
       )}
 
       {/* Chat */}
-      <div className="flex-1 overflow-y-auto chat-scroll bg-white/5 rounded-lg p-4 space-y-3 mb-4">
+      <div className="flex-1 overflow-y-auto chat-scroll card p-5 space-y-3 mb-4">
         {chatHistory.map((msg, i) => (
           <div
             key={i}
             className={`flex ${
               msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
+            } fade-in`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
-                msg.role === "user"
-                  ? "bg-gold/20 text-gold"
-                  : "bg-white/10 text-white/90"
+              className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed ${
+                msg.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
               }`}
             >
               {msg.content}
@@ -254,9 +273,13 @@ export default function ParticipantPage() {
           </div>
         ))}
         {sending && (
-          <div className="flex justify-start">
-            <div className="bg-white/10 rounded-lg px-4 py-2 text-sm text-white/50">
-              Pisze...
+          <div className="flex justify-start fade-in">
+            <div className="chat-bubble-ai px-5 py-3">
+              <div className="typing-dots">
+                <span />
+                <span />
+                <span />
+              </div>
             </div>
           </div>
         )}
@@ -271,16 +294,28 @@ export default function ParticipantPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Twoja odpowiedz..."
+            placeholder={t.yourAnswer}
             disabled={sending}
-            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold disabled:opacity-50"
+            className="input-field flex-1 px-4 py-3 text-sm disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={sending || !input.trim()}
-            className="bg-gold hover:bg-yellow-500 text-navy font-bold px-6 rounded-lg transition-colors disabled:opacity-50"
+            className="btn-primary px-5 flex items-center"
           >
-            Wyslij
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+              />
+            </svg>
           </button>
         </div>
       )}

@@ -30,6 +30,7 @@ export interface SessionConfig {
   questions: string[];
   duration: number; // minutes
   startedAt: number | null; // unix ms
+  language: "pl" | "en";
 }
 
 export interface ParticipantData {
@@ -54,7 +55,7 @@ const DEFAULTS = {
 export async function getSessionConfig(): Promise<SessionConfig> {
   const config = await redis.get<SessionConfig>("session:config");
   if (!config) {
-    return { ...DEFAULTS, startedAt: null };
+    return { ...DEFAULTS, startedAt: null, language: "pl" };
   }
   return config;
 }

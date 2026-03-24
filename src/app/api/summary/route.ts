@@ -31,7 +31,8 @@ export async function POST() {
   const summary = await generateGroupSummary(
     config.context,
     config.questions,
-    participantsData
+    participantsData,
+    config.language
   );
 
   await setGroupSummary(summary);

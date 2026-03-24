@@ -22,6 +22,7 @@ export async function GET(request: Request) {
       duration: config.duration,
       startedAt: config.startedAt,
       questions: config.questions,
+      language: config.language,
     },
     participant,
     summary,

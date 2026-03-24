@@ -39,11 +39,13 @@ export async function POST(request: Request) {
   const { action } = body;
 
   if (action === "start") {
+    await clearSession();
     const config: SessionConfig = {
       context: body.context,
       questions: body.questions,
       duration: body.duration,
       startedAt: Date.now(),
+      language: body.language || "pl",
     };
     await saveSessionConfig(config);
     await setSessionStatus("active");

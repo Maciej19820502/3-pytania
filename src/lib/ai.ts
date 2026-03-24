@@ -58,32 +58,80 @@ export async function generateGroupSummary(
   participantsData: Record<
     string,
     { answers: string[]; status: string }
-  >
+  >,
+  language: "pl" | "en" = "pl"
 ): Promise<string> {
+  const isEn = language === "en";
+
+  const noAnswer = isEn ? "(no answer)" : "(brak)";
   const participantsList = Object.entries(participantsData)
     .filter(([, d]) => d.answers.length > 0)
     .map(([nick, d]) => {
       const qa = questions
-        .map((q, i) => `  P: ${q}\n  O: ${d.answers[i] || "(brak)"}`)
+        .map(
+          (q, i) =>
+            `  ${isEn ? "Q" : "P"}: ${q}\n  ${isEn ? "A" : "O"}: ${d.answers[i] || noAnswer}`
+        )
         .join("\n");
       return `${nick}:\n${qa}`;
     })
     .join("\n\n");
 
-  const systemPrompt = `Jestes ekspertem od analizy danych z ankiet i wywiadow. Kontekst grupy: ${context}
+  const totalParticipants = Object.entries(participantsData).filter(
+    ([, d]) => d.answers.length > 0
+  ).length;
 
-Przeanalizuj odpowiedzi uczestnikow i wygeneruj podsumowanie grupowe w formacie:
+  const systemPrompt = isEn
+    ? `You are an experienced consultant and analyst. The session facilitator asked a group of participants to answer several questions. Your task is to write a concise, substantive opinion about this group.
 
-1. Laczna liczba uczestnikow: X
-2. Rozklad czestotliwosci uzywania AI (np. "60% -- sporadycznie, 25% -- regularnie")
-3. Top 3 obawy wymienione przez grupe (syntetycznie)
-4. Top 3 narzedzia AI wymienione przez grupe
-5. Ocena dojrzalosci AI grupy: 1-5 z jednozdaniowym uzasadnieniem (uzyj emoji gwiazdek)
-6. Rekomendacja dla prowadzacego (jedno zdanie -- na co zwrocic uwage w dalszych zajeciach)
+You have three sources of information:
+1. SESSION CONTEXT — describes who the participants are, what the purpose of the study is, what we want to verify
+2. QUESTIONS — what questions were asked to participants
+3. ANSWERS — what they specifically answered
 
-Pisz po polsku, zwiezle i profesjonalnie. Uzywaj emoji dla czytelnosci.`;
+Based on this, write an expert opinion addressed to the session facilitator. The opinion should:
+- Describe the picture of the group that emerges from the answers (don't repeat questions or answers — synthesize)
+- Relate to the context: is the group where it should be? What do the answers tell us in the context of the study's purpose?
+- Identify patterns, interesting signals, gaps, strengths
+- End with a concrete recommendation for the facilitator: what does this mean for further sessions/work
 
-  const userMessage = `Oto odpowiedzi uczestnikow na 3 pytania diagnostyczne:\n\n${participantsList}`;
+Style: natural, expert, in English. Like a short consultant's note after a diagnostic session.
+Do NOT use rigid templates, numbered lists or headings. Write in flowing text with paragraphs.
+You may use emoji if they improve readability, but sparingly.
+Length: 150-300 words.`
+    : `Jestes doswiadczonym konsultantem i analitykiem. Prowadzacy sesje poprosil grupe uczestnikow o odpowiedzi na kilka pytan. Twoim zadaniem jest napisac zwiezla, merytoryczna opinie o tej grupie.
+
+Masz trzy zrodla informacji:
+1. KONTEKST SESJI — opisuje kto to sa uczestnicy, jaki jest cel badania, co chcemy zweryfikowac
+2. PYTANIA — jakie pytania zadano uczestnikom
+3. ODPOWIEDZI — co konkretnie odpowiedzieli
+
+Na tej podstawie napisz opinie ekspercka skierowana do prowadzacego sesje. Opinia powinna:
+- Opisywac obraz grupy jaki wynika z odpowiedzi (nie powtarzaj pytan ani odpowiedzi — syntezuj)
+- Odnosic sie do kontekstu: czy grupa jest tam gdzie powinna byc? co wynika z odpowiedzi w kontekscie celu badania?
+- Wychwycic wzorce, ciekawe sygnaly, luki, mocne strony
+- Zakonczyc sie konkretna wskazowka dla prowadzacego: co z tego wynika na dalsze zajecia/prace
+
+Styl: naturalny, ekspercki, po polsku. Jak krotka notatka konsultanta po sesji diagnostycznej.
+NIE uzywaj sztywnych szablonow, numerowanych list ani naglowkow. Pisz plynnym tekstem z akapitami.
+Mozesz uzyc emoji jesli poprawiaja czytelnosc, ale oszczednie.
+Dlugosc: 150-300 slow.`;
+
+  const sessionCtxLabel = isEn ? "SESSION CONTEXT" : "KONTEKST SESJI";
+  const questionsLabel = isEn
+    ? "QUESTIONS ASKED TO PARTICIPANTS"
+    : "PYTANIA ZADANE UCZESTNIKOM";
+  const answersLabel = isEn ? "ANSWERS" : "ODPOWIEDZI";
+  const participantsLabel = isEn ? "participants" : "uczestnikow";
+
+  const userMessage = `${sessionCtxLabel}:
+${context}
+
+${questionsLabel}:
+${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+${answersLabel} (${totalParticipants} ${participantsLabel}):
+${participantsList}`;
 
   return chatWithAI(systemPrompt, [{ role: "user", content: userMessage }]);
 }

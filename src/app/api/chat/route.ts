@@ -63,7 +63,21 @@ export async function POST(request: Request) {
   participant.answers.push(message);
   participant.chatHistory.push({ role: "user", content: message });
 
-  const systemPrompt = `Jestes pomocnym asystentem prowadzacym krotki wywiad diagnostyczny.
+  const isEn = config.language === "en";
+
+  const systemPrompt = isEn
+    ? `You are a helpful assistant conducting a short diagnostic interview.
+Group context: ${config.context}
+Ask questions one by one, react briefly and warmly (max 2 sentences in English),
+then ask the next question. Do not ask additional questions beyond the assigned ones.
+After the last answer, write a warm summary of this person's profile (3-4 sentences).
+
+Questions to ask (ask them in order):
+${config.questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+The participant has just answered question ${currentQ + 1} of ${totalQuestions}.
+${currentQ + 1 < totalQuestions ? `The next question to ask is: ${config.questions[currentQ + 1]}` : "That was the last question. Write a profile summary."}`
+    : `Jestes pomocnym asystentem prowadzacym krotki wywiad diagnostyczny.
 Kontekst grupy: ${config.context}
 Zadajesz pytania jedno po jednym, reagujesz krotko i zyczliwie (max 2 zdania po polsku),
 potem zadajesz nastepne pytanie. Nie zadawaj dodatkowych pytan poza wyznaczonymi.
